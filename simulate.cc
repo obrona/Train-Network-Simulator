@@ -60,7 +60,7 @@ unordered_map<int, unordered_map<int, int>> platforms_to_id(const vector<string>
                                                             const adjacency_matrix &mat, 
                                                             const unordered_map<string, int> &station_ids,
                                                             const vector<size_t> &popularites,
-                                                            vector<Platform*> platforms) {
+                                                            vector<Platform*>& platforms) {
     int cnt = 0;
     unordered_map<int, unordered_map<int, int>> out;
     for (int r = 0; r < mat.size(); r ++) {
@@ -80,9 +80,9 @@ unordered_map<int, unordered_map<int, int>> platforms_to_id(const vector<string>
 
 // links the platforms for each line
 void link_platforms(char line, const vector<string> &station_line, 
-                    unordered_map<int, unordered_map<int, int>> platform_ids,
+                    unordered_map<int, unordered_map<int, int>>& platform_ids,
                     unordered_map<string, int> &station_ids,
-                    vector<Platform*> platforms) {
+                    vector<Platform*>& platforms) {
     
     
     
@@ -173,7 +173,7 @@ vector<vector<int>> get_terminal_platform_ids_for_each_line(const unordered_map<
 // if a platform belong to MPI process of rank i, needs to spawn a train, this process will call send_in with Train of
 // the correct color and id
 void spawn_trains(vector<vector<int>>& terminal_platform_ids_for_each_line, vector<int>& platform_which_process,
-                  vector<int>& num_trains, vector<Platform*> platforms, int* count_of_trains_already_spawned, int tick, int rank) {
+                  vector<int>& num_trains, vector<Platform*>& platforms, int* count_of_trains_already_spawned, int tick, int rank) {
     char lines[] = "gyb";
 
     // green, then yellow, then blue
@@ -214,6 +214,7 @@ void simulate(size_t num_stations, const vector<string> &station_names, const st
     vector<vector<int>> terminal_platform_ids_for_each_line = get_terminal_platform_ids_for_each_line(station_lines, platform_ids, station_ids);
 
     vector<int> num_trains_per_line = {(int) num_trains.at('g'), (int) num_trains.at('y'), (int) num_trains.at('b')};
+    int count_of_traind_spawned = 0;
     
 }
 
