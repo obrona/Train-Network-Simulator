@@ -15,6 +15,17 @@ struct Train {
     int id = -1; // if -1, means train does not exist
 };
 
+// line and id is for the train
+// status: 0 when travelling in a link, 1 when in holding area, 2 when in platform
+// if status is 1 or 2, dest_platform_id is irrelevant
+// this is to store the state of the train, when we have to print things out
+struct State {
+    char line;
+    int id;
+    int src_platform_id;
+    int dest_platform_id;
+    int status;
+};
 
 // t is the timestamp
 struct Pair {
@@ -33,6 +44,10 @@ struct Link {
     int travel_time = 0;
     std::optional<Train> train;
     int enter_time = 0;
+
+    Link() {}
+
+    Link(int travel_time): travel_time(travel_time) {}
     
     bool is_link_free() {
         return !train.has_value();
@@ -62,8 +77,6 @@ struct Platform {
     std::unordered_map<char, int> output_platforms;
     std::vector<int> input_platforms;
     std::priority_queue<Pair, std::vector<Pair>, Compare> pq;
-    int terminal; // 0 if is start, 1 if it 
-    std::vector<Train> trains_to_spawn;
 
     Link link;
     std::optional<Train> train;
@@ -73,6 +86,8 @@ struct Platform {
     Platform(): pltg(1) {}
 
     Platform(int popularity): pltg(popularity) {}
+
+    Platform(int popularity, int link_travel_time): pltg(popularity), link(link_travel_time) {}
     
     bool is_platform_free() {
         return !train.has_value();
@@ -119,6 +134,10 @@ struct Platform {
 
     void send_in(std::vector<Train> &trains, int tick) {
         for (Train &t : trains) pq.push({t, tick});
+    }
+
+    void send_in(Train train, int tick) {
+        pq.push({train, tick});
     }
 
     void push_train_to_platform(int tick) {

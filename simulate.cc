@@ -1,7 +1,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
-
+#include <mpi.h>
 #include "structs.hpp"
 
 using std::string;
@@ -11,14 +11,24 @@ using adjacency_matrix = std::vector<std::vector<size_t>>;
 
 
 // create mpi_Train type
-/*void create_mpi_Train(MPI_Datatype *my_type) {
+void create_mpi_Train(MPI_Datatype *my_type) {
     int num_elements = 2;  // Number of elements in the struct
     int block_lengths[] = {1, 1};  // Number of items of each data type in the struct
     MPI_Datatype types[] = {MPI_CHAR, MPI_INT};  // Data types of each struct element
     MPI_Aint offsets[] = {offsetof(Train, line), offsetof(Train, id)};  // Offsets of each struct element
     MPI_Type_create_struct(num_elements, block_lengths, offsets, types, my_type);
     MPI_Type_commit(my_type);
-}*/
+}
+
+// create mpi_State type. You need this to send back states of the train to the master node
+void create_mpi_State(MPI_Datatype *my_type) {
+    int num_elements = 2;  // Number of elements in the struct
+    int block_lengths[] = {1, 4};  // Number of items of each data type in the struct
+    MPI_Datatype types[] = {MPI_CHAR, MPI_INT};  // Data types of each struct element
+    MPI_Aint offsets[] = {offsetof(State, line), offsetof(State, id)};  // Offsets of each struct element
+    MPI_Type_create_struct(num_elements, block_lengths, offsets, types, my_type);
+    MPI_Type_commit(my_type);
+}
 
 
 // maps each station name to a int
@@ -42,11 +52,6 @@ int how_many_platforms(const adjacency_matrix &mat) {
     return cnt;
 }
 
-// create all platforms
-vector<Platform*> create_platforms(int total_platforms) {
-    return vector(total_platforms, new Platform);
-}
-
 
 // a platform is identified by src station id and dest station id
 // creates a hashmap so that we can identify a platform from the src station id and dest station id
@@ -65,7 +70,8 @@ unordered_map<int, unordered_map<int, int>> platforms_to_id(const vector<string>
 
             // set the platform popularity
             // the station in which the platform is on is the src station, so is r
-            platforms.push_back(new Platform(popularites[r]));
+            // and also the link distance
+            platforms.push_back(new Platform(popularites[r], mat[r][c]));
             cnt ++;
         }
     }
@@ -124,14 +130,69 @@ void link_platforms(char line, const vector<string> &station_line,
     }
 }
 
-// for each MPI process to know which platforms it has
+// for each MPI process to know which platforms it has.
 vector<int> assign_platform_ids_to_process(int rank, int total_process, int total_platforms) {
     vector<int> out;
-    for (int platform = rank; platform < total_platforms; platform += total_process) {
-        out.push_back(platform);
+    for (int i = rank; i < total_platforms; i += total_process) {
+        out.push_back(i);
     }
     return out;
 }
+
+vector<int> map_platform_to_rank(int total_platforms, int total_process) {
+    vector<int> out(total_platforms, 0);
+    for (int i = 0; i < total_platforms; i ++) out[i] = i % total_process;
+    return out;
+}
+
+// for each line, get the terminal platform ids
+// idx 0 for green line, idx 1 for yellow line, idx 2 for blue line
+vector<vector<int>> get_terminal_platform_ids_for_each_line(const unordered_map<char, vector<string>>& station_lines,
+                                                            unordered_map<int, unordered_map<int, int>>& platform_ids,
+                                                            unordered_map<string, int> &station_ids) {
+    vector<vector<int>> out(3, vector<int>());
+    char lines[] = "gyb";
+    for (int i = 0; i < 3; i ++) {
+        char line = lines[i];
+        const vector<string>& station_line = station_lines.at(line);
+        int start_platform_id = platform_ids[station_ids[station_line[0]]][station_ids[station_line[1]]];
+
+        int len = station_line.size();
+        int end_platform_id = platform_ids[station_ids[station_line[len - 1]]][station_ids[station_line[len - 2]]];
+        out[i].push_back(start_platform_id);
+        out[i].push_back(end_platform_id);
+    }
+    return out;
+}
+
+// each MPI process needs to call this process to spawn the train. Should the MPI process have
+// num_trains is changed to a vector, as in simulate, num_trains is a const unordered_map, which means it values 
+// cannot be changed
+// for terminal_platform_ids_for_each_line, idx 0 is for green, idx 1 is for yello, idx 2 is for blue
+// eg. terminal_platform_ids_for_each_line[0][1] means the end (or right) terminal platform for the green line
+// if a platform belong to MPI process of rank i, needs to spawn a train, this process will call send_in with Train of
+// the correct color and id
+void spawn_trains(vector<vector<int>>& terminal_platform_ids_for_each_line, vector<int>& platform_which_process,
+                  vector<int>& num_trains, vector<Platform*> platforms, int* count_of_trains_already_spawned, int tick, int rank) {
+    char lines[] = "gyb";
+
+    // green, then yellow, then blue
+    for (int i = 0; i < 3; i ++) {
+        // left terminal then right terminal
+        for (int pos = 0; pos <= 1; pos ++) {
+            if (num_trains[i] == 0) continue;
+
+            int platform_id = terminal_platform_ids_for_each_line[i][pos];
+            
+            // if platform belongs to this MPI process
+            if (platform_which_process[platform_id] == rank) {
+                platforms[platform_id]->send_in({lines[i], *count_of_trains_already_spawned}, tick);
+            }
+            (*count_of_trains_already_spawned) ++;
+            num_trains[i] --;
+        }
+    }                
+}                  
 
 
 
@@ -143,6 +204,19 @@ void simulate(size_t num_stations, const vector<string> &station_names, const st
     unordered_map<string, int> station_ids = station_name_to_id(station_names);
     
     vector<Platform*> platforms;
-    unordered_map<int, unordered_map<int, int>> platform_ids = platforms_to_id(station_names, mat, station_ids, popularities, platforms);       
+    unordered_map<int, unordered_map<int, int>> platform_ids = platforms_to_id(station_names, mat, station_ids, popularities, platforms);
+
+    for (const auto& [color, line] : station_lines) {
+        link_platforms(color, line, platform_ids, station_ids, platforms);
+    } 
+
+    vector<int> platform_which_process = map_platform_to_rank(platforms.size(), (int) total_processes);
+    vector<vector<int>> terminal_platform_ids_for_each_line = get_terminal_platform_ids_for_each_line(station_lines, platform_ids, station_ids);
+
+    vector<int> num_trains_per_line = {(int) num_trains.at('g'), (int) num_trains.at('y'), (int) num_trains.at('b')};
     
+}
+
+int main() {
+    return 0;
 }
