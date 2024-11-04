@@ -54,7 +54,7 @@ struct Link {
     }
 
     bool can_train_leave(int tick) {
-        return train.has_value() && enter_time + travel_time == tick;
+        return train.has_value() && enter_time + travel_time >= tick;
     } 
 
     Train train_leave() {
@@ -94,7 +94,7 @@ struct Platform {
     }
 
     bool can_train_leave(int tick) {
-        return train.has_value() && enter_time + unloading_time == tick;
+        return train.has_value() && enter_time + unloading_time >= tick;
     }
 
     Train train_leave() {
@@ -119,11 +119,13 @@ struct Platform {
     Pair send_out(int tick) {
         Train out = {'b', -1};
         
+        // check if train can leave link
         if (link.can_train_leave(tick)) {
             out = link.train_leave();
         }
 
-        if (can_train_leave(tick)) {
+        // check whether we cn puh train from platform to link. It requires train to finish unloading, and link to be free
+        if (link.is_link_free() && can_train_leave(tick)) {
             link.train_enter(train.value(), tick);
             train.reset();
         }
