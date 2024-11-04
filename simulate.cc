@@ -4,7 +4,7 @@
 #include <mpi.h>
 
 #include "structs.hpp"
-#include "State.hpp"
+#include "state.hpp"
 
 using std::string;
 using std::unordered_map;
@@ -25,7 +25,7 @@ void create_mpi_Train(MPI_Datatype *my_type) {
 // create mpi_State type. You need this to send back states of the train to the master node
 void create_mpi_State(MPI_Datatype *my_type) {
     int num_elements = 2;  // Number of elements in the struct
-    int block_lengths[] = {1, 4};  // Number of items of each data type in the struct
+    int block_lengths[] = {1, 5};  // Number of items of each data type in the struct
     MPI_Datatype types[] = {MPI_CHAR, MPI_INT};  // Data types of each struct element
     MPI_Aint offsets[] = {offsetof(State, line), offsetof(State, id)};  // Offsets of each struct element
     MPI_Type_create_struct(num_elements, block_lengths, offsets, types, my_type);
@@ -58,11 +58,13 @@ int how_many_platforms(const adjacency_matrix &mat) {
 // a platform is identified by src station id and dest station id
 // creates a hashmap so that we can identify a platform from the src station id and dest station id
 // and also fills the vector<Platforms*> with a new platform with the correct popularity
+// also fills the station name of platform in platform_id_to_string
 unordered_map<int, unordered_map<int, int>> platforms_to_id(const vector<string> &station_names, 
                                                             const adjacency_matrix &mat, 
                                                             const unordered_map<string, int> &station_ids,
                                                             const vector<size_t> &popularites,
-                                                            vector<Platform*>& platforms) {
+                                                            vector<Platform*>& platforms,
+                                                            vector<string>& platform_id_to_string) {
     int cnt = 0;
     unordered_map<int, unordered_map<int, int>> out;
     for (int r = 0; r < mat.size(); r ++) {
@@ -74,6 +76,7 @@ unordered_map<int, unordered_map<int, int>> platforms_to_id(const vector<string>
             // the station in which the platform is on is the src station, so is r
             // and also the link distance
             platforms.push_back(new Platform(popularites[r], mat[r][c]));
+            platform_id_to_string.push_back(station_names[r]);
             cnt ++;
         }
     }
@@ -206,7 +209,9 @@ void simulate(size_t num_stations, const vector<string> &station_names, const st
     unordered_map<string, int> station_ids = station_name_to_id(station_names);
     
     vector<Platform*> platforms;
-    unordered_map<int, unordered_map<int, int>> platform_ids = platforms_to_id(station_names, mat, station_ids, popularities, platforms);
+    vector<string> platform_ids_to_string;
+    unordered_map<int, unordered_map<int, int>> platform_ids = platforms_to_id(station_names, mat, station_ids, popularities, platforms, 
+                                                                               platform_ids_to_string);
 
     for (const auto& [color, line] : station_lines) {
         link_platforms(color, line, platform_ids, station_ids, platforms);

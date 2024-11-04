@@ -2,13 +2,9 @@
 #include <queue>
 #include <vector>
 #include <optional>
+
 #include "platform_load_time_gen.hpp"
-
-// t is either time or platform id
-
-
-
-
+#include "state.hpp"
 
 struct Train {
     char line = 'z';

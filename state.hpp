@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 #include <vector>
 
@@ -8,12 +9,16 @@
 // if status is 1 or 2, dest_platform_id is irrelevant
 // this is to store the state of the train, when we have to print things out
 
+// to save the state, you need the line which is either 'g', 'y', 'b'
+// the train id, the src_platform_id, dest_platform_id, the status and the tick
+
 struct State {
     char line;
     int id;
     int src_platform_id;
     int dest_platform_id;
     int status;
+    int tick;
 };
 
 std::string link_state_to_string(State& state, std::vector<std::string>& platform_id_to_string) {

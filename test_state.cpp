@@ -5,7 +5,7 @@ using namespace std;
 vector<string> platform_ids_to_string = {"changi", "tampines", "clementi"};
 
 void test1() {
-    State s = {'g', 1, 0, 1, 0};
+    State s = {'g', 1, 0, 1, 0, 100};
     string ans = link_state_to_string(s, platform_ids_to_string);
     string expected = "g1-changi->tampines";
     //cout << ans << endl;
@@ -13,7 +13,7 @@ void test1() {
 }
 
 void test2() {
-    State s = {'b', 0, 0, 1, 1};
+    State s = {'b', 0, 0, 1, 1, 100};
     string ans = holding_state_to_string(s, platform_ids_to_string);
     string expected = "b0-changi#";
     //cout << ans << endl;
@@ -21,7 +21,7 @@ void test2() {
 }
 
 void test3() {
-    State s = {'y', 12, 2, 0, 2};
+    State s = {'y', 12, 2, 0, 2, 100};
     string ans = platform_state_to_string(s, platform_ids_to_string);
     string expected = "y12-clementi%";
     //cout << ans << endl;
