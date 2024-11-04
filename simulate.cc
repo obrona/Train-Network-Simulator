@@ -2,7 +2,9 @@
 #include <string>
 #include <unordered_map>
 #include <mpi.h>
+
 #include "structs.hpp"
+#include "State.hpp"
 
 using std::string;
 using std::unordered_map;

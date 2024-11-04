@@ -15,18 +15,6 @@ struct Train {
     int id = -1; // if -1, means train does not exist
 };
 
-// line and id is for the train
-// status: 0 when travelling in a link, 1 when in holding area, 2 when in platform
-// if status is 1 or 2, dest_platform_id is irrelevant
-// this is to store the state of the train, when we have to print things out
-struct State {
-    char line;
-    int id;
-    int src_platform_id;
-    int dest_platform_id;
-    int status;
-};
-
 // t is the timestamp
 struct Pair {
     Train train;
