@@ -62,8 +62,8 @@ int how_many_platforms(const adjacency_matrix &mat) {
 unordered_map<int, unordered_map<int, int>> platforms_to_id(const vector<string> &station_names, 
                                                             const adjacency_matrix &mat, 
                                                             const unordered_map<string, int> &station_ids,
-                                                            const vector<size_t> &popularites,
-                                                            vector<Platform*>& platforms,
+                                                            const vector<size_t> &popularities,
+                                                            vector<Platform>& platforms,
                                                             vector<string>& platform_id_to_string) {
     int cnt = 0;
     unordered_map<int, unordered_map<int, int>> out;
@@ -72,10 +72,10 @@ unordered_map<int, unordered_map<int, int>> platforms_to_id(const vector<string>
             if (mat[r][c] == 0) continue;
             out[r][c] = cnt;
 
-            // set the platform popularity
-            // the station in which the platform is on is the src station, so is r
-            // and also the link distance
-            platforms.push_back(new Platform(popularites[r], mat[r][c]));
+            // set the src_station_id and dest_station_id, impt when saving states
+            // then set platform (actually station) popularity
+            // then set link distance
+            platforms.emplace_back(r, c, popularities[r], mat[r][c]);
             platform_id_to_string.push_back(station_names[r]);
             cnt ++;
         }
@@ -87,7 +87,7 @@ unordered_map<int, unordered_map<int, int>> platforms_to_id(const vector<string>
 void link_platforms(char line, const vector<string> &station_line, 
                     unordered_map<int, unordered_map<int, int>>& platform_ids,
                     unordered_map<string, int> &station_ids,
-                    vector<Platform*>& platforms) {
+                    vector<Platform>& platforms) {
     
     
     
@@ -96,41 +96,41 @@ void link_platforms(char line, const vector<string> &station_line,
             int pa_id = platform_ids[station_ids[station_line[0]]][station_ids[station_line[1]]];
             int pb_id = platform_ids[station_ids[station_line[1]]][station_ids[station_line[0]]];
             
-            platforms[pa_id]->output_platforms[line] = pb_id;
-            platforms[pb_id]->input_platforms.push_back(pa_id);
+            platforms[pa_id].output_platforms[line] = pb_id;
+            platforms[pb_id].input_platforms.push_back(pa_id);
 
-            platforms[pb_id]->output_platforms[line] = pa_id;
-            platforms[pa_id]->input_platforms.push_back(pb_id);
+            platforms[pb_id].output_platforms[line] = pa_id;
+            platforms[pa_id].input_platforms.push_back(pb_id);
         } else if (i == 0) {
             int pa_id = platform_ids[station_ids[station_line[0]]][station_ids[station_line[1]]];
             int pb_id = platform_ids[station_ids[station_line[1]]][station_ids[station_line[2]]];
 
-            platforms[pa_id]->output_platforms[line] = pb_id;
-            platforms[pb_id]->input_platforms.push_back(pa_id);
+            platforms[pa_id].output_platforms[line] = pb_id;
+            platforms[pb_id].input_platforms.push_back(pa_id);
 
             int pc_id = platform_ids[station_ids[station_line[1]]][station_ids[station_line[0]]];
-            platforms[pc_id]->output_platforms[line] = pa_id;
-            platforms[pa_id]->input_platforms.push_back(pc_id);
+            platforms[pc_id].output_platforms[line] = pa_id;
+            platforms[pa_id].input_platforms.push_back(pc_id);
         } else if (i + 1 == station_line.size() - 1) {
             int pa_id = platform_ids[station_ids[station_line[i]]][station_ids[station_line[i + 1]]];
             int pb_id = platform_ids[station_ids[station_line[i + 1]]][station_ids[station_line[i]]];
 
-            platforms[pa_id]->output_platforms[line] = pb_id;
-            platforms[pb_id]->input_platforms.push_back(pa_id);
+            platforms[pa_id].output_platforms[line] = pb_id;
+            platforms[pb_id].input_platforms.push_back(pa_id);
 
             int pc_id = platform_ids[station_ids[station_line[i]]][station_ids[station_line[i - 1]]];
-            platforms[pb_id]->output_platforms[line] = pc_id;
-            platforms[pc_id]->input_platforms.push_back(pb_id);
+            platforms[pb_id].output_platforms[line] = pc_id;
+            platforms[pc_id].input_platforms.push_back(pb_id);
         } else {
             int pa_id = platform_ids[station_ids[station_line[i]]][station_ids[station_line[i + 1]]];
             int pb_id = platform_ids[station_ids[station_line[i + 1]]][station_ids[station_line[i + 2]]];
-            platforms[pa_id]->output_platforms[line] = pb_id;
-            platforms[pb_id]->input_platforms.push_back(pa_id);
+            platforms[pa_id].output_platforms[line] = pb_id;
+            platforms[pb_id].input_platforms.push_back(pa_id);
 
             int pc_id = platform_ids[station_ids[station_line[i + 1]]][station_ids[station_line[i]]];
             int pd_id = platform_ids[station_ids[station_line[i]]][station_ids[station_line[i - 1]]];
-            platforms[pc_id]->output_platforms[line] = pd_id;
-            platforms[pd_id]->input_platforms.push_back(pc_id);
+            platforms[pc_id].output_platforms[line] = pd_id;
+            platforms[pd_id].input_platforms.push_back(pc_id);
         } 
     }
 }
@@ -154,7 +154,7 @@ vector<int> map_platform_to_rank(int total_platforms, int total_process) {
 // idx 0 for green line, idx 1 for yellow line, idx 2 for blue line
 vector<vector<int>> get_terminal_platform_ids_for_each_line(const unordered_map<char, vector<string>>& station_lines,
                                                             unordered_map<int, unordered_map<int, int>>& platform_ids,
-                                                            unordered_map<string, int> &station_ids) {
+                                                            unordered_map<string, int>& station_ids) {
     vector<vector<int>> out(3, vector<int>());
     char lines[] = "gyb";
     for (int i = 0; i < 3; i ++) {
@@ -178,7 +178,7 @@ vector<vector<int>> get_terminal_platform_ids_for_each_line(const unordered_map<
 // if a platform belong to MPI process of rank i, needs to spawn a train, this process will call send_in with Train of
 // the correct color and id
 void spawn_trains(vector<vector<int>>& terminal_platform_ids_for_each_line, vector<int>& platform_which_process,
-                  vector<int>& num_trains, vector<Platform*>& platforms, int* count_of_trains_already_spawned, int tick, int rank) {
+                  vector<int>& num_trains, vector<Platform>& platforms, int* count_of_trains_already_spawned, int tick, int rank) {
     char lines[] = "gyb";
 
     // green, then yellow, then blue
@@ -191,7 +191,7 @@ void spawn_trains(vector<vector<int>>& terminal_platform_ids_for_each_line, vect
             
             // if platform belongs to this MPI process
             if (platform_which_process[platform_id] == rank) {
-                platforms[platform_id]->send_in({lines[i], *count_of_trains_already_spawned}, tick);
+                platforms[platform_id].send_in({lines[i], *count_of_trains_already_spawned}, tick);
             }
             (*count_of_trains_already_spawned) ++;
             num_trains[i] --;
@@ -208,7 +208,7 @@ void simulate(size_t num_stations, const vector<string> &station_names, const st
     
     unordered_map<string, int> station_ids = station_name_to_id(station_names);
     
-    vector<Platform*> platforms;
+    vector<Platform> platforms;
     vector<string> platform_ids_to_string;
     unordered_map<int, unordered_map<int, int>> platform_ids = platforms_to_id(station_names, mat, station_ids, popularities, platforms, 
                                                                                platform_ids_to_string);

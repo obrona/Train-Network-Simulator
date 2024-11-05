@@ -2,13 +2,22 @@
 #include <queue>
 #include <vector>
 #include <optional>
+#include <algorithm>
 
 #include "platform_load_time_gen.hpp"
 #include "state.hpp"
 
+using std::make_heap;
+using std::push_heap;
+using std::pop_heap;
+
 struct Train {
     char line = 'z';
     int id = -1; // if -1, means train does not exist
+
+    bool operator==(const Train& other) {
+        return other.line == line && other.id == id;
+    }
 };
 
 // t is the timestamp
@@ -22,6 +31,9 @@ struct Compare {
         return (a.t == b.t) ? a.train.id > b.train.id : a.t > b.t;
     }
 };
+
+const Compare compare;
+
 
 
 struct Link {
@@ -56,11 +68,13 @@ struct Link {
 
 
 struct Platform {
+    int src_station_id, dest_station_id;
     PlatformLoadTimeGen pltg;
-    std::unordered_map<char, bool> which_lines;
     std::unordered_map<char, int> output_platforms;
     std::vector<int> input_platforms;
-    std::priority_queue<Pair, std::vector<Pair>, Compare> pq;
+
+    std::vector<Pair> pq;
+    std::vector<State> saved_states;
 
     Link link;
     std::optional<Train> train;
@@ -72,6 +86,12 @@ struct Platform {
     Platform(int popularity): pltg(popularity) {}
 
     Platform(int popularity, int link_travel_time): pltg(popularity), link(link_travel_time) {}
+
+    Platform(int src_station_id, int dest_station_id, int popularity, int link_travel_time): 
+        src_station_id(src_station_id), 
+        dest_station_id(dest_station_id), 
+        pltg(popularity),
+        link(link_travel_time) {}
     
     bool is_platform_free() {
         return !train.has_value();
@@ -119,17 +139,57 @@ struct Platform {
     }
 
     void send_in(std::vector<Train> &trains, int tick) {
-        for (Train &t : trains) pq.push({t, tick});
+        for (Train &t : trains) {
+            pq.push_back({t, tick});
+            push_heap(pq.begin(), pq.end(), compare);
+        }
     }
 
     void send_in(Train train, int tick) {
-        pq.push({train, tick});
+        pq.push_back({train, tick});
+        push_heap(pq.begin(), pq.end(), compare);
     }
 
     void push_train_to_platform(int tick) {
         if (!pq.empty() && is_platform_free()) {
-            Pair p = pq.top(); pq.pop();
-            train_enter(p.train, tick);
+            pop_heap(pq.begin(), pq.end(), compare);
+            train_enter(pq.back().train, tick);
+            pq.pop_back();
         }
+    }
+
+    void save_train_in_link_state(int tick) {
+        if (link.is_link_free()) return;
+        saved_states.push_back({link.train.value().line, 
+                                link.train.value().id,
+                                src_station_id,
+                                dest_station_id,
+                                0,
+                                tick});
+
+    }
+
+    void save_train_in_platform_state(int tick) {
+        if (is_platform_free()) return;
+        saved_states.push_back({train.value().line,
+                                train.value().id,
+                                src_station_id,
+                                dest_station_id,
+                                2,
+                                tick});
+    }
+
+    void save_all_trains_in_holding_state(int tick) {
+        for (Pair& p : pq) {
+            Train& t = p.train;
+            saved_states.push_back({t.line, t.id, src_station_id, dest_station_id, 1, tick});
+        }
+    }
+
+    // call this function to save all states in the save_state vector
+    void save_all_states(int tick) {
+        save_train_in_link_state(tick);
+        save_train_in_platform_state(tick);
+        save_all_trains_in_holding_state(tick);
     }
 };

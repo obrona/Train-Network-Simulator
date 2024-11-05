@@ -1,6 +1,9 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <algorithm>
+#include <iostream>
+
 
 
 
@@ -21,47 +24,81 @@ struct State {
     int tick;
 };
 
-std::string link_state_to_string(State& state, std::vector<std::string>& platform_id_to_string) {
+std::string link_state_to_string(State& state, std::vector<std::string>& station_id_to_string) {
     std::string out = "";
     out += state.line;
     out += std::to_string(state.id);
     out += '-';
-    out += platform_id_to_string[state.src_platform_id];
+    out += station_id_to_string[state.src_platform_id];
     out += "->";
-    out += platform_id_to_string[state.dest_platform_id];
+    out += station_id_to_string[state.dest_platform_id];
     return out;
 }
 
-std::string holding_state_to_string(State& state, std::vector<std::string>& platform_id_to_string) {
+std::string holding_state_to_string(State& state, std::vector<std::string>& station_id_to_string) {
     std::string out = "";
     out += state.line;
     out += std::to_string(state.id);
     out += '-';
-    out += platform_id_to_string[state.src_platform_id];
+    out += station_id_to_string[state.src_platform_id];
     out += '#';
     return out;
 }
 
-std::string platform_state_to_string(State& state, std::vector<std::string>& platform_id_to_string) {
+std::string platform_state_to_string(State& state, std::vector<std::string>& station_id_to_string) {
     std::string out = "";
     out += state.line;
     out += std::to_string(state.id);
     out += '-';
-    out += platform_id_to_string[state.src_platform_id];
+    out += station_id_to_string[state.src_platform_id];
     out += '%';
     return out;
 }
 
 
 
-std::string state_to_string(State& state, std::vector<std::string>& platform_id_to_string) {
+std::string state_to_string(State& state, std::vector<std::string>& station_id_to_string) {
     int status = state.status;
     if (status == 0) {
-        return link_state_to_string(state, platform_id_to_string);
+        return link_state_to_string(state, station_id_to_string);
     } else if (status == 1) {
-        return holding_state_to_string(state, platform_id_to_string);
+        return holding_state_to_string(state, station_id_to_string);
     } else {
-        return platform_state_to_string(state, platform_id_to_string);
+        return platform_state_to_string(state, station_id_to_string);
+    }
+}
+
+void print_all_states(std::vector<State>& all_states, int num_ticks_to_print, int ticks, std::vector<std::string>& station_id_to_string) {
+    // to improve I/O speed, but do not mix C I/O (e.g. printf, scanf)
+    // if have any errors, maybe try to comment out this lines
+    std::ios_base::sync_with_stdio(0);
+    std::cin.tie(0);
+
+
+    std::vector<std::vector<State>> bins(num_ticks_to_print, std::vector<State>());
+    int begin = ticks - num_ticks_to_print;
+
+    // start binning all the states
+    for (State& state : all_states) {
+        bins[state.tick - begin].push_back(state);
+    }
+
+    for (int i = begin; i < ticks; i ++) {
+        std::vector<State>& state_at_tick = bins[i - begin];
+
+        // collect all the string results
+        std::vector<std::string> store;
+        for (State& state : state_at_tick) {
+            store.push_back(state_to_string(state, station_id_to_string));
+        }
+
+        // sort them in lexicographical order
+        std::sort(store.begin(), store.end());
+        std::cout << i << ":";
+        for (std::string& str :store) {
+            std::cout << " " << str;
+        }
+        std::cout << '\n';
     }
 }
 
