@@ -44,7 +44,7 @@ unordered_map<string, int> station_name_to_id(const vector<string>& station_name
 
 // count how many platforms, it is just the total degree of the graph
 // degree of each node (or station) = number of outgoing links for that station = number of platforms for that station
-int how_many_platforms(const adjacency_matrix &mat) {
+int how_many_platforms(const adjacency_matrix& mat) {
     int cnt = 0;
     for (int r = 0; r < mat.size(); r ++) {
         for (int c = 0; c < mat[0].size(); c ++) {
@@ -178,7 +178,7 @@ vector<vector<int>> get_terminal_platform_ids_for_each_line(const unordered_map<
 // if a platform belong to MPI process of rank i, needs to spawn a train, this process will call send_in with Train of
 // the correct color and id
 void spawn_trains(vector<vector<int>>& terminal_platform_ids_for_each_line, vector<int>& platform_which_process,
-                  vector<int>& num_trains, vector<Platform>& platforms, int* count_of_trains_already_spawned, int tick, int rank) {
+                  vector<int>& num_trains, vector<Platform>& platforms, int *count_of_trains_already_spawned, int tick, int rank) {
     char lines[] = "gyb";
 
     // green, then yellow, then blue
