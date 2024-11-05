@@ -34,7 +34,7 @@ void create_mpi_State(MPI_Datatype *my_type) {
 
 
 // maps each station name to a int
-unordered_map<string, int> station_name_to_id(const vector<string> &station_names) {
+unordered_map<string, int> station_name_to_id(const vector<string>& station_names) {
     unordered_map<string, int> out;
     for (int i = 0; i < station_names.size(); i ++) {
         out[station_names[i]] = i;
@@ -59,10 +59,10 @@ int how_many_platforms(const adjacency_matrix &mat) {
 // creates a hashmap so that we can identify a platform from the src station id and dest station id
 // and also fills the vector<Platforms*> with a new platform with the correct popularity
 // also fills the station name of platform in platform_id_to_string
-unordered_map<int, unordered_map<int, int>> platforms_to_id(const vector<string> &station_names, 
-                                                            const adjacency_matrix &mat, 
-                                                            const unordered_map<string, int> &station_ids,
-                                                            const vector<size_t> &popularities,
+unordered_map<int, unordered_map<int, int>> platforms_to_id(const vector<string>& station_names, 
+                                                            const adjacency_matrix& mat, 
+                                                            const unordered_map<string, int>& station_ids,
+                                                            const vector<size_t>& popularities,
                                                             vector<Platform>& platforms,
                                                             vector<string>& platform_id_to_string) {
     int cnt = 0;
@@ -84,9 +84,9 @@ unordered_map<int, unordered_map<int, int>> platforms_to_id(const vector<string>
 }
 
 // links the platforms for each line
-void link_platforms(char line, const vector<string> &station_line, 
+void link_platforms(char line, const vector<string>& station_line, 
                     unordered_map<int, unordered_map<int, int>>& platform_ids,
-                    unordered_map<string, int> &station_ids,
+                    unordered_map<string, int>& station_ids,
                     vector<Platform>& platforms) {
     
     
