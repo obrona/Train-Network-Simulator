@@ -187,6 +187,7 @@ struct Platform {
     }
 
     // call this function to save all states in the save_state vector
+    // only call this after you have done all the updates for this tick
     void save_all_states(int tick) {
         save_train_in_link_state(tick);
         save_train_in_platform_state(tick);
