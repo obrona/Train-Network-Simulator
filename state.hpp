@@ -24,7 +24,7 @@ struct State {
     int tick;
 };
 
-std::string link_state_to_string(State& state, std::vector<std::string>& station_id_to_string) {
+std::string link_state_to_string(State& state, const std::vector<std::string>& station_id_to_string) {
     std::string out = "";
     out += state.line;
     out += std::to_string(state.id);
@@ -35,7 +35,7 @@ std::string link_state_to_string(State& state, std::vector<std::string>& station
     return out;
 }
 
-std::string holding_state_to_string(State& state, std::vector<std::string>& station_id_to_string) {
+std::string holding_state_to_string(State& state, const std::vector<std::string>& station_id_to_string) {
     std::string out = "";
     out += state.line;
     out += std::to_string(state.id);
@@ -45,7 +45,7 @@ std::string holding_state_to_string(State& state, std::vector<std::string>& stat
     return out;
 }
 
-std::string platform_state_to_string(State& state, std::vector<std::string>& station_id_to_string) {
+std::string platform_state_to_string(State& state, const std::vector<std::string>& station_id_to_string) {
     std::string out = "";
     out += state.line;
     out += std::to_string(state.id);
@@ -57,7 +57,7 @@ std::string platform_state_to_string(State& state, std::vector<std::string>& sta
 
 
 
-std::string state_to_string(State& state, std::vector<std::string>& station_id_to_string) {
+std::string state_to_string(State& state, const std::vector<std::string>& station_id_to_string) {
     int status = state.status;
     if (status == 0) {
         return link_state_to_string(state, station_id_to_string);
@@ -68,7 +68,7 @@ std::string state_to_string(State& state, std::vector<std::string>& station_id_t
     }
 }
 
-void print_all_states(std::vector<State>& all_states, int num_ticks_to_print, int ticks, std::vector<std::string>& station_id_to_string) {
+void print_all_states(std::vector<State>& all_states, int num_ticks_to_print, int ticks, const std::vector<std::string>& station_id_to_string) {
     // to improve I/O speed, but do not mix C I/O (e.g. printf, scanf)
     // if have any errors, maybe try to comment out this lines
     std::ios_base::sync_with_stdio(0);

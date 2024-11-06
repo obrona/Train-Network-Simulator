@@ -1,6 +1,8 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <iostream>
+
 #include <mpi.h>
 
 #include "structs.hpp"
@@ -197,8 +199,92 @@ void spawn_trains(vector<vector<int>>& terminal_platform_ids_for_each_line, vect
             num_trains[i] --;
         }
     }                
-}                  
+}
 
+
+void sendout_sendin_trains(int tick,
+                           vector<int>& my_platform_ids, 
+                           vector<int>& platform_which_process, 
+                           vector<Platform>& platforms, MPI_Datatype mpi_train) {
+    vector<MPI_Request> mpi_requests;
+    
+
+    // this for loop does MPI_Isend for all platforms assign to this rank
+    for (int id : my_platform_ids) {
+        Platform& platform = platforms[id];
+        Pair p = platform.send_out(tick);
+       
+        // send out trains, must send to each train in output_platforms, even if no trains to send
+        for (const auto& [line, dest_platform_id] : platform.output_platforms) {
+            MPI_Request request;
+            
+            // even if we send to the same process, it does not matter
+            // i have tested using Isend, Irecv in the same process, and it works
+            // invariant: must send to all output platforms, must recv from all input platforms
+            if (!(p.train == INVALID_TRAIN) && p.train.line == line) {
+                // send the train
+                MPI_Isend(&(p.train), 1, mpi_train, platform_which_process[dest_platform_id], 0, MPI_COMM_WORLD, &request);
+            } else {
+                // send invalid train
+                MPI_Isend(&INVALID_TRAIN, 1, mpi_train, platform_which_process[dest_platform_id], 0, MPI_COMM_WORLD, &request);
+            }
+            
+            mpi_requests.push_back(request);
+        }
+    }
+
+    vector<vector<Train>> trains_received(my_platform_ids.size(), vector<Train>());
+    
+    // for each platform, receive trains from input_platforms
+    for (int i = 0; i < my_platform_ids.size(); i ++) {
+        int id = my_platform_ids[i];
+        Platform& platform = platforms[id];
+        
+        
+        vector<Train>& recv_buffer = trains_received[i];
+        recv_buffer.resize(platform.input_platforms.size());
+
+        for (int j = 0; j < platform.input_platforms.size(); j ++) {
+            
+            MPI_Request request;
+            int input_platform_id = platform.input_platforms[j];
+            MPI_Irecv(&(recv_buffer[j]), 1, mpi_train, platform_which_process[input_platform_id], 0, MPI_COMM_WORLD, &request);
+
+            mpi_requests.push_back(request);
+        }
+    }
+
+   
+    // now wait all
+    MPI_Waitall(mpi_requests.size(), mpi_requests.data(), MPI_STATUS_IGNORE);
+
+    for (int i = 0; i < my_platform_ids.size(); i ++) {
+        int id = my_platform_ids[i];
+        platforms[id].send_in(trains_received[i], tick);
+
+        // then push in train to platform
+        platforms[id].push_train_to_platform(tick);
+    }
+}
+
+void save_platform_states(int tick, vector<int>& my_platform_ids, vector<Platform>& platforms) {
+    for (int id : my_platform_ids) {
+        platforms[id].save_all_states(tick);
+    }
+}
+
+
+void print(vector<int> arr) {
+    for (int x : arr) std::cout << x << " ";
+}
+
+vector<State> collect_all_states(vector<int>& my_platform_ids, vector<Platform>& platforms) {
+    vector<State> out;
+    for (int id : my_platform_ids) {
+        out.insert(out.end(), platforms[id].saved_states.begin(), platforms[id].saved_states.end());
+    }
+    return out;
+}
 
 
 void simulate(size_t num_stations, const vector<string> &station_names, const std::vector<size_t> &popularities,
@@ -218,13 +304,28 @@ void simulate(size_t num_stations, const vector<string> &station_names, const st
     } 
 
     vector<int> platform_which_process = map_platform_to_rank(platforms.size(), (int) total_processes);
-    vector<vector<int>> terminal_platform_ids_for_each_line = get_terminal_platform_ids_for_each_line(station_lines, platform_ids, station_ids);
-
-    vector<int> num_trains_per_line = {(int) num_trains.at('g'), (int) num_trains.at('y'), (int) num_trains.at('b')};
-    int count_of_traind_spawned = 0;
     
-}
+    vector<int> my_platform_ids = assign_platform_ids_to_process(mpi_rank, total_processes, platforms.size());
+    vector<vector<int>> terminal_platform_ids_for_each_line = get_terminal_platform_ids_for_each_line(station_lines, platform_ids, station_ids);
+    
+    vector<int> num_trains_per_line = {(int) num_trains.at('g'), (int) num_trains.at('y'), (int) num_trains.at('b')};
+    int count_of_trains_spawned = 0;
 
-int main() {
-    return 0;
+    MPI_Datatype mpi_train;
+    create_mpi_Train(&mpi_train);
+
+    for (int tick = 0; tick < ticks; tick++) {
+        spawn_trains(terminal_platform_ids_for_each_line, platform_which_process, 
+                 num_trains_per_line, platforms, &count_of_trains_spawned, tick, mpi_rank);
+
+        sendout_sendin_trains(tick, my_platform_ids, platform_which_process, platforms, mpi_train);
+
+        if (tick >= ticks - num_ticks_to_print) save_platform_states(tick, my_platform_ids, platforms);
+    }
+
+    vector<State> my_states = collect_all_states(my_platform_ids, platforms);
+    print_all_states(my_states, num_ticks_to_print, ticks, station_names);
+    
+
+    
 }

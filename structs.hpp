@@ -34,7 +34,7 @@ struct Compare {
 
 const Compare compare;
 
-
+const Train INVALID_TRAIN;
 
 struct Link {
     int travel_time = 0;
@@ -121,7 +121,7 @@ struct Platform {
     // return the train that leaves the outgoing link that is paired with this platform
     // and the platform_id 
     Pair send_out(int tick) {
-        Train out = {'b', -1};
+        Train out = INVALID_TRAIN;
         
         // check if train can leave link
         if (link.can_train_leave(tick)) {
@@ -134,18 +134,24 @@ struct Platform {
             train.reset();
         }
 
-        int dest_platform = (out.id == -1) ? 'b' : output_platforms[out.line];
+        int dest_platform = (out.id == -1) ? 0 : output_platforms[out.line];
         return {out, dest_platform};
     }
 
-    void send_in(std::vector<Train> &trains, int tick) {
+    void send_in(std::vector<Train>& trains, int tick) {
         for (Train &t : trains) {
+            // skip invalid trains
+            if (t.id == -1) continue;
+
             pq.push_back({t, tick});
             push_heap(pq.begin(), pq.end(), compare);
         }
     }
 
     void send_in(Train train, int tick) {
+        // skip invalid trains
+        if (train.id == -1) return;
+        
         pq.push_back({train, tick});
         push_heap(pq.begin(), pq.end(), compare);
     }
