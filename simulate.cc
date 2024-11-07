@@ -2,6 +2,7 @@
 #include <string>
 #include <unordered_map>
 #include <iostream>
+#include <algorithm>
 
 #include <mpi.h>
 
@@ -292,6 +293,51 @@ vector<State> collect_all_states(vector<int>& my_platform_ids, vector<Platform>&
     return out;
 }
 
+int* get_num_states_per_process(int* num_states, int rank, int total_processes) {
+    int* num_states_per_process = nullptr;
+
+    if (rank == 0) num_states_per_process = new int[total_processes];
+
+    MPI_Gather(num_states, 1, MPI_INT, num_states_per_process, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    return num_states_per_process;
+}
+
+int get_total_num_of_states(int* num_states_per_process, int total_process) {
+    int sum = 0;
+    for (int i = 0; i < total_process; i ++) sum += num_states_per_process[i];
+    return sum;
+}
+
+State* get_all_states(State* my_states, 
+                      int* num_states_per_process, // only valid at rank 0
+                      int my_state_size,
+                      int rank, 
+                      int total_processes, 
+                      MPI_Datatype mpi_state) {
+    int* displacement = nullptr;
+    State* all_states = nullptr;
+
+    if (rank == 0) {
+        displacement = new int[total_processes];
+        displacement[0] = 0;
+        for (int i = 1; i < total_processes; i ++) displacement[i] = displacement[i - 1] + num_states_per_process[i - 1];
+
+        all_states = new State[displacement[total_processes - 1]];
+    }
+
+    
+    MPI_Gatherv(my_states, 
+                my_state_size, 
+                mpi_state, 
+                all_states, 
+                num_states_per_process, 
+                displacement, 
+                mpi_state, 
+                0, MPI_COMM_WORLD);
+    
+    return all_states;
+}
+
 
 void simulate(size_t num_stations, const vector<string> &station_names, const std::vector<size_t> &popularities,
               const adjacency_matrix &mat, const unordered_map<char, vector<string>> &station_lines, size_t ticks,
@@ -317,8 +363,9 @@ void simulate(size_t num_stations, const vector<string> &station_names, const st
     vector<int> num_trains_per_line = {(int) num_trains.at('g'), (int) num_trains.at('y'), (int) num_trains.at('b')};
     int count_of_trains_spawned = 0;
 
-    MPI_Datatype mpi_train;
+    MPI_Datatype mpi_train, mpi_state;
     create_mpi_Train(&mpi_train);
+    create_mpi_State(&mpi_state);
 
     for (int tick = 0; tick < ticks; tick++) {
         spawn_trains(terminal_platform_ids_for_each_line, platform_which_process, 
@@ -329,10 +376,46 @@ void simulate(size_t num_stations, const vector<string> &station_names, const st
         push_train_in_for_my_platforms(tick, my_platform_ids, platforms);
 
         if (tick >= ticks - num_ticks_to_print) save_platform_states(tick, my_platform_ids, platforms);
+        
     }
 
+    
+    // rank 0 to gather all states
     vector<State> my_states = collect_all_states(my_platform_ids, platforms);
-    print_all_states(my_states, num_ticks_to_print, ticks, station_names);
+    int my_state_size = my_states.size();
+
+    // gather num of states
+    int* num_states_per_process = new int[total_processes];
+    MPI_Gather(&my_state_size, 1, MPI_INT, num_states_per_process, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+    
+    
+    // get total num of states
+    int total_states = 0;
+    if (mpi_rank == 0) {
+        for (int i = 0; i < total_processes; i ++) total_states += num_states_per_process[i];
+    }
+    
+
+    // calculate displacement
+    int* displacements = new int[total_processes];
+    displacements[0] = 0;
+    if (mpi_rank == 0) {
+        for (int i = 1; i < total_processes; i ++) {
+            displacements[i] = displacements[i - 1] + num_states_per_process[i - 1];
+        }
+    }
+    
+    State* states = new State[total_states];
+    MPI_Gatherv(my_states.data(), my_state_size, mpi_state, states, num_states_per_process, displacements, mpi_state, 0, MPI_COMM_WORLD);
+    
+    if (mpi_rank == 0) {
+        print_all_states_ptr(states, total_states, num_ticks_to_print, ticks, station_names);
+    }
+    
+
+
+    
     
 
     

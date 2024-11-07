@@ -102,6 +102,38 @@ void print_all_states(std::vector<State>& all_states, int num_ticks_to_print, in
     }
 }
 
+void print_all_states_ptr(State* states, int size, int num_ticks_to_print, int ticks, const std::vector<std::string>& station_id_to_string) {
+    std::ios_base::sync_with_stdio(0);
+    std::cin.tie(0);
+
+    std::vector<std::vector<State>> bins(num_ticks_to_print, std::vector<State>());
+    int begin = ticks - num_ticks_to_print;
+
+    for (int i = 0; i < size; i ++) {
+        State& state = states[i];
+        bins[state.tick - begin].push_back(state);
+    }
+
+    for (int i = begin; i < ticks; i ++) {
+        std::vector<State>& state_at_tick = bins[i - begin];
+
+        // collect all the string results
+        std::vector<std::string> store;
+        for (State& state : state_at_tick) {
+            store.push_back(state_to_string(state, station_id_to_string));
+        }
+
+        // sort them in lexicographical order
+        std::sort(store.begin(), store.end());
+        std::cout << i << ":";
+        for (std::string& str :store) {
+            std::cout << " " << str;
+        }
+        std::cout << '\n';
+    }
+
+}
+
 
 
 

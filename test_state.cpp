@@ -37,9 +37,19 @@ void test4() {
     print_all_states(states, 3, 3, station_ids_to_string);
 }
 
+void test5() {
+    State states[5] = {{'g', 0, 1, 2, 0, 0}, 
+                       {'g', 1, 1, 2, 2, 1},
+                       {'b', 1, 0, 1, 1, 1}, 
+                       {'y', 2, 0, 2, 2, 2}, 
+                       {'b', 10, 0, 2, 0, 0}};
+    print_all_states_ptr(states, 5, 3, 3, station_ids_to_string);
+}
+
 int main() {
     //test1();
     //test2();
     //test3();
-    test4();
+    //test4();
+    test5();
 }
