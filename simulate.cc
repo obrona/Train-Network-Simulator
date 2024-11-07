@@ -213,7 +213,6 @@ void sendout_sendin_trains(int tick,
     for (int id : my_platform_ids) {
         Platform& platform = platforms[id];
         Pair p = platform.send_out(tick);
-       
         // send out trains, must send to each train in output_platforms, even if no trains to send
         for (const auto& [line, dest_platform_id] : platform.output_platforms) {
             MPI_Request request;
@@ -221,12 +220,14 @@ void sendout_sendin_trains(int tick,
             // even if we send to the same process, it does not matter
             // i have tested using Isend, Irecv in the same process, and it works
             // invariant: must send to all output platforms, must recv from all input platforms
+            
+            // IMPT: the tag must have the id of the the sending platform id, to differentiate between the messages
             if (!(p.train == INVALID_TRAIN) && p.train.line == line) {
                 // send the train
-                MPI_Isend(&(p.train), 1, mpi_train, platform_which_process[dest_platform_id], 0, MPI_COMM_WORLD, &request);
+                MPI_Isend(&(p.train), 1, mpi_train, platform_which_process[dest_platform_id], id, MPI_COMM_WORLD, &request);
             } else {
                 // send invalid train
-                MPI_Isend(&INVALID_TRAIN, 1, mpi_train, platform_which_process[dest_platform_id], 0, MPI_COMM_WORLD, &request);
+                MPI_Isend(&INVALID_TRAIN, 1, mpi_train, platform_which_process[dest_platform_id], id, MPI_COMM_WORLD, &request);
             }
             
             mpi_requests.push_back(request);
@@ -248,7 +249,9 @@ void sendout_sendin_trains(int tick,
             
             MPI_Request request;
             int input_platform_id = platform.input_platforms[j];
-            MPI_Irecv(&(recv_buffer[j]), 1, mpi_train, platform_which_process[input_platform_id], 0, MPI_COMM_WORLD, &request);
+
+            // IMPT: tag must be the input_platform id
+            MPI_Irecv(&(recv_buffer[j]), 1, mpi_train, platform_which_process[input_platform_id], input_platform_id, MPI_COMM_WORLD, &request);
 
             mpi_requests.push_back(request);
         }
@@ -261,8 +264,11 @@ void sendout_sendin_trains(int tick,
     for (int i = 0; i < my_platform_ids.size(); i ++) {
         int id = my_platform_ids[i];
         platforms[id].send_in(trains_received[i], tick);
+    }
+}
 
-        // then push in train to platform
+void push_train_in_for_my_platforms(int tick, vector<int>& my_platform_ids, vector<Platform>& platforms) {
+    for (int id : my_platform_ids) {
         platforms[id].push_train_to_platform(tick);
     }
 }
@@ -319,6 +325,8 @@ void simulate(size_t num_stations, const vector<string> &station_names, const st
                  num_trains_per_line, platforms, &count_of_trains_spawned, tick, mpi_rank);
 
         sendout_sendin_trains(tick, my_platform_ids, platform_which_process, platforms, mpi_train);
+
+        push_train_in_for_my_platforms(tick, my_platform_ids, platforms);
 
         if (tick >= ticks - num_ticks_to_print) save_platform_states(tick, my_platform_ids, platforms);
     }

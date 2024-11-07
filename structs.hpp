@@ -41,7 +41,7 @@ struct Link {
     std::optional<Train> train;
     int enter_time = 0;
 
-    Link() {}
+    //Link() {}
 
     Link(int travel_time): travel_time(travel_time) {}
     
@@ -50,7 +50,7 @@ struct Link {
     }
 
     bool can_train_leave(int tick) {
-        return train.has_value() && enter_time + travel_time >= tick;
+        return train.has_value() && enter_time + travel_time <= tick;
     } 
 
     Train train_leave() {
@@ -81,11 +81,11 @@ struct Platform {
     int unloading_time = 0;
     int enter_time = 0;
 
-    Platform(): pltg(1) {}
+    //Platform(): pltg(1) {}
 
-    Platform(int popularity): pltg(popularity) {}
+    //Platform(int popularity): pltg(popularity) {}
 
-    Platform(int popularity, int link_travel_time): pltg(popularity), link(link_travel_time) {}
+    //Platform(int popularity, int link_travel_time): pltg(popularity), link(link_travel_time) {}
 
     Platform(int src_station_id, int dest_station_id, int popularity, int link_travel_time): 
         src_station_id(src_station_id), 
@@ -98,7 +98,7 @@ struct Platform {
     }
 
     bool can_train_leave(int tick) {
-        return train.has_value() && enter_time + unloading_time >= tick;
+        return train.has_value() && enter_time + unloading_time <= tick;
     }
 
     Train train_leave() {
@@ -139,10 +139,11 @@ struct Platform {
     }
 
     void send_in(std::vector<Train>& trains, int tick) {
+        
         for (Train &t : trains) {
             // skip invalid trains
             if (t.id == -1) continue;
-
+            
             pq.push_back({t, tick});
             push_heap(pq.begin(), pq.end(), compare);
         }
