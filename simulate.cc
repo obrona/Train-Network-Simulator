@@ -293,7 +293,7 @@ vector<State> collect_all_states(vector<int>& my_platform_ids, vector<Platform>&
     return out;
 }
 
-int* get_num_states_per_process(int* num_states, int rank, int total_processes) {
+/*int* get_num_states_per_process(int* num_states, int rank, int total_processes) {
     int* num_states_per_process = nullptr;
 
     if (rank == 0) num_states_per_process = new int[total_processes];
@@ -336,7 +336,7 @@ State* get_all_states(State* my_states,
                 0, MPI_COMM_WORLD);
     
     return all_states;
-}
+}*/
 
 
 void simulate(size_t num_stations, const vector<string> &station_names, const std::vector<size_t> &popularities,
