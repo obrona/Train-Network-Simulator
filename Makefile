@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS:=-Wall -Wextra -pedantic -std=c++20
+CXXFLAGS:= -std=c++20
 RELEASEFLAGS:=-O3
 
 OUTPUT := trains
