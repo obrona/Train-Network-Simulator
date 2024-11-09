@@ -293,50 +293,6 @@ vector<State> collect_all_states(vector<int>& my_platform_ids, vector<Platform>&
     return out;
 }
 
-/*int* get_num_states_per_process(int* num_states, int rank, int total_processes) {
-    int* num_states_per_process = nullptr;
-
-    if (rank == 0) num_states_per_process = new int[total_processes];
-
-    MPI_Gather(num_states, 1, MPI_INT, num_states_per_process, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    return num_states_per_process;
-}
-
-int get_total_num_of_states(int* num_states_per_process, int total_process) {
-    int sum = 0;
-    for (int i = 0; i < total_process; i ++) sum += num_states_per_process[i];
-    return sum;
-}
-
-State* get_all_states(State* my_states, 
-                      int* num_states_per_process, // only valid at rank 0
-                      int my_state_size,
-                      int rank, 
-                      int total_processes, 
-                      MPI_Datatype mpi_state) {
-    int* displacement = nullptr;
-    State* all_states = nullptr;
-
-    if (rank == 0) {
-        displacement = new int[total_processes];
-        displacement[0] = 0;
-        for (int i = 1; i < total_processes; i ++) displacement[i] = displacement[i - 1] + num_states_per_process[i - 1];
-
-        all_states = new State[displacement[total_processes - 1]];
-    }
-
-    
-    MPI_Gatherv(my_states, 
-                my_state_size, 
-                mpi_state, 
-                all_states, 
-                num_states_per_process, 
-                displacement, 
-                mpi_state, 
-                0, MPI_COMM_WORLD);
-    
-    return all_states;
-}*/
 
 
 void simulate(size_t num_stations, const vector<string> &station_names, const std::vector<size_t> &popularities,
@@ -412,6 +368,10 @@ void simulate(size_t num_stations, const vector<string> &station_names, const st
     if (mpi_rank == 0) {
         print_all_states_ptr(states, total_states, num_ticks_to_print, ticks, station_names);
     }
+
+    free(num_states_per_process);
+    free(displacements);
+    free(states);
     
 
 
