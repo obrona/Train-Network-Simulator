@@ -1,0 +1,15 @@
+0: g0-changi%
+1: g0-changi->tampines
+2: g0-changi->tampines
+3: g0-tampines%
+4: g0-tampines->clementi
+5: g0-clementi%
+6: g0-clementi->tampines
+7: g0-tampines%
+8: g0-tampines->changi
+9: g0-tampines->changi
+10: g0-changi%
+11: g0-changi->tampines
+12: g0-changi->tampines
+13: g0-tampines%
+14: g0-tampines%

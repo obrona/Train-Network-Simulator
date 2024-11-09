@@ -1,0 +1,5 @@
+15: b4-tampines->downtown b5-downtown->tampines g0-tampines% g1-tampines->clementi y2-chinatown->clementi y3-clementi->chinatown
+16: b4-tampines->downtown b5-downtown->tampines g0-tampines% g1-tampines->clementi y2-chinatown->clementi y3-clementi->chinatown
+17: b4-tampines->downtown b5-downtown->tampines g0-tampines->changi g1-tampines->clementi y2-clementi% y3-clementi->chinatown
+18: b4-tampines->downtown b5-tampines% g0-tampines->changi g1-tampines->clementi y2-clementi->tampines y3-clementi->chinatown
+19: b4-tampines->downtown b5-tampines% g0-tampines->changi g1-tampines->clementi y2-clementi->tampines y3-chinatown%

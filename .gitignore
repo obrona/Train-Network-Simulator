@@ -35,5 +35,6 @@ trains
 test
 test.cpp 
 custom.cpp
-out/
+out/*.out
+out/perf*
 

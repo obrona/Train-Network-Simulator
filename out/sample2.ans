@@ -1,0 +1,9 @@
+0: b3-changi# g0-changi% g1-clementi% y2-clementi#
+1: b3-changi% g0-changi->tampines g1-clementi->tampines g4-changi# y2-clementi%
+2: b3-changi% g0-changi->tampines g1-tampines% g4-changi# y2-clementi->tampines
+3: b3-changi% g0-changi->tampines g1-tampines->changi g4-changi# y2-tampines%
+4: b3-changi% g0-changi->tampines g1-tampines->changi g4-changi# y2-tampines->harbourfront
+5: b3-changi->tampines g0-tampines% g1-tampines->changi g4-changi% y2-tampines->harbourfront
+6: b3-changi->tampines g0-tampines->clementi g1-tampines->changi g4-changi% y2-harbourfront%
+7: b3-changi->tampines g0-clementi% g1-changi# g4-changi% y2-harbourfront->tampines
+8: b3-changi->tampines g0-clementi->tampines g1-changi# g4-changi% y2-harbourfront->tampines
