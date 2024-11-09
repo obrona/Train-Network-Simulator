@@ -222,13 +222,14 @@ void sendout_sendin_trains(int tick,
             // i have tested using Isend, Irecv in the same process, and it works
             // invariant: must send to all output platforms, must recv from all input platforms
             
-            // IMPT: the tag must have the id of the the sending platform id, to differentiate between the messages
+            // IMPT: from tag I must know sender and receiver i.e bijective f:N*N -> N
+            int tag = id * platforms.size() + dest_platform_id;
             if (!(p.train == INVALID_TRAIN) && p.train.line == line) {
                 // send the train
-                MPI_Isend(&(p.train), 1, mpi_train, platform_which_process[dest_platform_id], id, MPI_COMM_WORLD, &request);
+                MPI_Isend(&(p.train), 1, mpi_train, platform_which_process[dest_platform_id], tag, MPI_COMM_WORLD, &request);
             } else {
                 // send invalid train
-                MPI_Isend(&INVALID_TRAIN, 1, mpi_train, platform_which_process[dest_platform_id], id, MPI_COMM_WORLD, &request);
+                MPI_Isend(&INVALID_TRAIN, 1, mpi_train, platform_which_process[dest_platform_id], tag, MPI_COMM_WORLD, &request);
             }
             
             mpi_requests.push_back(request);
@@ -251,8 +252,9 @@ void sendout_sendin_trains(int tick,
             MPI_Request request;
             int input_platform_id = platform.input_platforms[j];
 
-            // IMPT: tag must be the input_platform id
-            MPI_Irecv(&(recv_buffer[j]), 1, mpi_train, platform_which_process[input_platform_id], input_platform_id, MPI_COMM_WORLD, &request);
+            // IMPT: from tag must know sender and receiver platform
+            int tag = input_platform_id * platforms.size() + id;
+            MPI_Irecv(&(recv_buffer[j]), 1, mpi_train, platform_which_process[input_platform_id], tag, MPI_COMM_WORLD, &request);
 
             mpi_requests.push_back(request);
         }
@@ -372,11 +374,5 @@ void simulate(size_t num_stations, const vector<string> &station_names, const st
     free(num_states_per_process);
     free(displacements);
     free(states);
-    
 
-
-    
-    
-
-    
 }
