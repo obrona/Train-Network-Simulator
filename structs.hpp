@@ -120,7 +120,7 @@ struct Platform {
 
     // return the train that leaves the outgoing link that is paired with this platform
     // and the platform_id 
-    Pair send_out(int tick) {
+    Train send_out(int tick) {
         Train out = INVALID_TRAIN;
         
         // check if train can leave link
@@ -134,8 +134,7 @@ struct Platform {
             train.reset();
         }
 
-        int dest_platform = (out.id == -1) ? 0 : output_platforms[out.line];
-        return {out, dest_platform};
+        return out;
     }
 
     void send_in(std::vector<Train>& trains, int tick) {

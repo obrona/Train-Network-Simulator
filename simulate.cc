@@ -213,7 +213,7 @@ void sendout_sendin_trains(int tick,
     // this for loop does MPI_Isend for all platforms assign to this rank
     for (int id : my_platform_ids) {
         Platform& platform = platforms[id];
-        Pair p = platform.send_out(tick);
+        Train train = platform.send_out(tick);
         // send out trains, must send to each train in output_platforms, even if no trains to send
         for (const auto& [line, dest_platform_id] : platform.output_platforms) {
             MPI_Request request;
@@ -224,9 +224,9 @@ void sendout_sendin_trains(int tick,
             
             // IMPT: from tag I must know sender and receiver i.e bijective f:N*N -> N
             int tag = id * platforms.size() + dest_platform_id;
-            if (!(p.train == INVALID_TRAIN) && p.train.line == line) {
+            if (!(train == INVALID_TRAIN) && train.line == line) {
                 // send the train
-                MPI_Isend(&(p.train), 1, mpi_train, platform_which_process[dest_platform_id], tag, MPI_COMM_WORLD, &request);
+                MPI_Isend(&train, 1, mpi_train, platform_which_process[dest_platform_id], tag, MPI_COMM_WORLD, &request);
             } else {
                 // send invalid train
                 MPI_Isend(&INVALID_TRAIN, 1, mpi_train, platform_which_process[dest_platform_id], tag, MPI_COMM_WORLD, &request);

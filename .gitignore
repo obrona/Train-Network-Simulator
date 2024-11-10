@@ -37,4 +37,5 @@ test.cpp
 custom.cpp
 out/*.out
 out/perf*
+perf_out/
 
