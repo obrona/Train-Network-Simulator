@@ -34,7 +34,7 @@ struct Compare {
 
 const Compare compare;
 
-const Train INVALID_TRAIN;
+const Train INVALID_TRAIN = {'z', -1};
 
 struct Link {
     int travel_time = 0;
